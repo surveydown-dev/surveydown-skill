@@ -3,49 +3,48 @@
 A skill for working with [surveydown](https://surveydown.org) surveys — authoring
 and deploying them.
 
-👉 **Start with [`SKILL.md`](SKILL.md)**, which routes to the right task doc.
+👉 **Start with [`skills/surveydown/SKILL.md`](skills/surveydown/SKILL.md)**, which
+routes to the right task doc.
 
 Implemented:
 - **Deploy templates to Hugging Face Spaces** — see
-  [`resources/hugging-face-deployment.md`](resources/hugging-face-deployment.md)
-  (tooling in [`hugging-face/`](hugging-face/)).
+  [`skills/surveydown/resources/hugging-face-deployment.md`](skills/surveydown/resources/hugging-face-deployment.md)
+  (tooling in [`skills/surveydown/hugging-face/`](skills/surveydown/hugging-face/)).
 
 Planned: creating a survey from scratch, and deploying to Posit Connect Cloud.
 
 ## Install (Claude Code)
 
-Clone the repo, then run the installer. It symlinks the skill into
-`~/.claude/skills/surveydown`, so `git pull` later updates it instantly.
-
 ```bash
-git clone https://github.com/surveydown-dev/surveydown-skill.git
-cd surveydown-skill
-./install.sh
+npx skills add surveydown-dev/surveydown-skill -a claude-code -g -y
 ```
 
-Start a new Claude Code session and the `surveydown` skill is available.
-
-Prefer one line and no scripts? Clone straight into the skills directory:
-
-```bash
-git clone https://github.com/surveydown-dev/surveydown-skill.git ~/.claude/skills/surveydown
-```
+This installs the `surveydown` skill globally to `~/.claude/skills/`. Start a new
+Claude Code session and it's available. ([`npx skills`](https://github.com/vercel-labs/skills)
+is the open agent-skills installer.)
 
 ## Update
 
 ```bash
-git -C ~/.claude/skills/surveydown pull   # if cloned into the skills dir
-# or, if you used install.sh, pull in your cloned repo:
-git pull
+npx skills add surveydown-dev/surveydown-skill -a claude-code -g -y
 ```
+
+Re-running `add` pulls the latest version.
 
 ## Uninstall (Claude Code)
 
 ```bash
-./uninstall.sh            # if you installed with install.sh
-# or, if you cloned into the skills dir:
-rm -rf ~/.claude/skills/surveydown
+npx skills remove surveydown-dev/surveydown-skill -g
 ```
 
-`uninstall.sh` only removes the `~/.claude/skills/surveydown` symlink; your cloned
-repo is left untouched.
+## Developing this skill
+
+If you're working *on* the skill (not just using it), symlink your local clone so
+edits and `git pull` take effect immediately:
+
+```bash
+git clone https://github.com/surveydown-dev/surveydown-skill.git
+cd surveydown-skill
+./install.sh      # symlinks skills/surveydown -> ~/.claude/skills/surveydown
+./uninstall.sh    # removes the symlink
+```
