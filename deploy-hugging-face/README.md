@@ -57,7 +57,7 @@ build servers).
 
 ## Usage
 
-Run these from this `hugging-face/` folder:
+Run these from this `deploy-hugging-face/` folder:
 
 ```bash
 # Build only (no push) — inspect the assembled Space folder under /tmp

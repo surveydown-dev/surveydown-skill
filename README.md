@@ -17,10 +17,10 @@ routes to the right task doc.
 
 Each section lives in its own folder with a `README.md` guide and its tooling.
 The Hugging Face deployment is fully implemented — see
-[`hugging-face/`](hugging-face/README.md). The other section folders
-([`creating-a-survey/`](creating-a-survey/README.md),
-[`connecting-a-database/`](connecting-a-database/README.md),
-[`posit-connect-cloud/`](posit-connect-cloud/README.md)) are stubbed and being
+[`deploy-hugging-face/`](deploy-hugging-face/README.md). The other section folders
+([`create-survey/`](create-survey/README.md),
+[`connect-database/`](connect-database/README.md),
+[`deploy-posit-cloud/`](deploy-posit-cloud/README.md)) are stubbed and being
 filled in.
 
 ## Install (Claude Code)
