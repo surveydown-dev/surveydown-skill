@@ -45,13 +45,48 @@ Trade-offs to know:
 
 - `git`, and `rsync` (the script falls back to `cp` if it's missing).
 - A surveydown survey directory containing `app.R` and `survey.qmd`.
-- The target Space already exists (Docker SDK). Create one at
-  <https://huggingface.co/new-space>, or with the HF CLI:
+- The Hugging Face `hf` CLI, **logged in** — see Setup below. With it, `deploy.sh`
+  creates the Space for you (if it doesn't exist) and the push is authenticated.
+
+## Setup (one time)
+
+### 1. Install the `hf` CLI
+
+The CLI ships in the `huggingface_hub` package.
+
+- **macOS / Homebrew Python:** `pip` is blocked by PEP 668 ("externally managed
+  environment"), and `pip install --user` is blocked too — so use an isolated
+  install:
   ```bash
-  hf repo create <owner>/<space> --repo-type space --space-sdk docker
+  brew install pipx && pipx install huggingface_hub
+  # or, if Homebrew has the formula: brew install huggingface-cli
   ```
-- Git must be able to push to `huggingface.co`. Run `hf auth login`, or you'll be
-  prompted for your username and a **Write** token on the first push.
+- **Other systems / virtualenv:** `pip install -U huggingface_hub` is fine.
+
+Verify: `hf version` (the binary may land in `~/.local/bin` — add it to `PATH` if
+`hf` isn't found, e.g. `export PATH="$HOME/.local/bin:$PATH"`).
+
+### 2. Log in with a Write token
+
+Create a **Write** token at <https://huggingface.co/settings/tokens>, then:
+
+```bash
+hf auth login --token <YOUR_WRITE_TOKEN> --add-to-git-credential
+```
+
+- `--add-to-git-credential` stores the token in your OS keychain so the later
+  `git push` to your Space is authenticated automatically.
+- **Use this `--token` form in non-interactive or embedded shells.** The plain
+  interactive `hf auth login` reads the token with hidden input, which fails in
+  shells that can't control terminal echo (you'll see *"Can not control echo on
+  the terminal"* and it aborts). The `--token` flag sidesteps that. (In a normal
+  interactive terminal, plain `hf auth login` works fine.)
+
+Verify: `hf auth whoami`.
+
+> No `hf` CLI? You can still deploy, but you must create the Space yourself first
+> (<https://huggingface.co/new-space>, **Docker** SDK), and `git` will prompt for
+> your username + a Write token on the first push.
 
 ## Usage
 
@@ -70,7 +105,13 @@ Run from your survey directory (or pass `--dir`):
 # set the display title shown on the Space card (URL is unaffected):
 /path/to/deploy-hugging-face/deploy.sh --space yourname/my-survey \
   --title "My Survey — Pilot Wave 1"
+
+# deploy AND wait: poll until the Space is RUNNING, then report URL + HTTP status:
+/path/to/deploy-hugging-face/deploy.sh --space yourname/my-survey --wait
 ```
+
+If the Space doesn't exist yet, `deploy.sh` creates it for you (Docker SDK, via the
+`hf` CLI) and then pushes — no need to pre-create it.
 
 (When the skill is installed, the script is at
 `~/.claude/skills/surveydown-skill/deploy-hugging-face/deploy.sh`.)
@@ -102,7 +143,19 @@ For the survey directory, `deploy.sh`:
    (`_survey/`, `preview_data.csv`, `rsconnect/`, `.git/`, `*.Rproj`, …).
 2. Adds the shared `assets/Dockerfile`, a generated `README.md` (with Hugging Face
    frontmatter), and a generated `packages.txt`.
-3. Pushes the result to your Space, which auto-rebuilds.
+3. Creates the Space if it doesn't exist (Docker SDK, via the `hf` CLI), then
+   pushes the result, which auto-rebuilds.
+4. With `--wait`, polls the Space's runtime stage until `RUNNING` and reports the
+   live URL + HTTP status (otherwise it returns right after the push, while the
+   build continues on Hugging Face).
+
+A first build typically takes a **few minutes** (~2–5 min): the `rocker` base image
+plus Posit Public Package Manager binaries make R-package install fast. If a build
+errors, check the logs at `https://huggingface.co/spaces/<owner>/<name>?logs=build`.
+
+`packages.txt` may be **empty** — that's normal. A survey that only uses
+`surveydown` (e.g. one driven by a `questions.yml`) needs no extra R packages;
+`surveydown` and `shiny` are installed by the Dockerfile regardless.
 
 `_survey/` is **not** shipped — the container renders the survey at startup
 (Quarto is in the image). This also keeps the Space repo free of binary files,
