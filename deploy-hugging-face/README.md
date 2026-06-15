@@ -8,6 +8,25 @@ Your survey directory is the source of truth. The tooling only *generates* the
 Hugging Face packaging (a Dockerfile, a README, a package list) and pushes it to a
 Space — it never modifies your survey.
 
+## Agent workflow (follow this when deploying for a user)
+
+When you (the assistant) deploy a survey to Hugging Face on a user's behalf, do
+these two confirmations **before** running `deploy.sh` — do not assume either:
+
+1. **URL slug** — confirm the target `--space <owner>/<name>`. The `<name>`
+   becomes the URL (`https://<owner>-<name>.hf.space`) and must be URL-safe
+   (lowercase, dashes, no spaces). Propose a sensible slug from the survey/folder
+   name and let the user accept or change it.
+2. **Display title** — always **ask the user what display title to show on the
+   Space card**. Offer a few reasonable suggestions (e.g. the Title-Cased slug, or
+   a descriptive phrase drawn from the survey's `survey.qmd` title / `README`), and
+   also let them type their own. Pass their choice via `--title "..."`. The title
+   is display-only; it never changes the URL. (If the user explicitly says they
+   don't care, fall back to the default Title-Cased slug.)
+
+This keeps the title intentional rather than an auto-generated guess, and because
+the README is regenerated on every deploy, `--title` is the durable way to set it.
+
 ## Why Hugging Face
 
 surveydown surveys are live R/Shiny apps, so they need a host that runs R — not a
