@@ -6,12 +6,19 @@ and deploying them.
 👉 **Start with [`skills/surveydown/SKILL.md`](skills/surveydown/SKILL.md)**, which
 routes to the right task doc.
 
-Implemented:
-- **Deploy templates to Hugging Face Spaces** — see
-  [`skills/surveydown/resources/hugging-face-deployment.md`](skills/surveydown/resources/hugging-face-deployment.md)
-  (tooling in [`skills/surveydown/hugging-face/`](skills/surveydown/hugging-face/)).
+## What it covers
 
-Planned: creating a survey from scratch, and deploying to Posit Connect Cloud.
+| Task | Status |
+|------|--------|
+| Create a new survey | 🚧 under construction |
+| Connect a database to store responses | 🚧 under construction |
+| Deploy to Hugging Face Spaces | ✅ available |
+| Deploy to Posit Connect Cloud | 🚧 under construction |
+
+The Hugging Face deployment is fully implemented — see
+[`skills/surveydown/resources/hugging-face-deployment.md`](skills/surveydown/resources/hugging-face-deployment.md)
+(tooling in [`skills/surveydown/hugging-face/`](skills/surveydown/hugging-face/)).
+The other topics are stubbed and being filled in.
 
 ## Install (Claude Code)
 
@@ -35,16 +42,4 @@ Re-running `add` pulls the latest version.
 
 ```bash
 npx skills remove surveydown-dev/surveydown-skill -g
-```
-
-## Developing this skill
-
-If you're working *on* the skill (not just using it), symlink your local clone so
-edits and `git pull` take effect immediately:
-
-```bash
-git clone https://github.com/surveydown-dev/surveydown-skill.git
-cd surveydown-skill
-./install.sh      # symlinks skills/surveydown -> ~/.claude/skills/surveydown
-./uninstall.sh    # removes the symlink
 ```

@@ -1,6 +1,6 @@
 ---
 name: surveydown
-description: End-to-end skill for surveydown — the R + Quarto + Shiny survey platform. Covers authoring surveys and deploying them to hosts. Implemented now, deploying the survey templates to Hugging Face Spaces (Docker SDK) from their GitHub repos via a shared Dockerfile and a generator script. Planned, creating a survey from scratch and deploying to Posit Connect Cloud. Use whenever working with surveydown surveys — authoring or hosting.
+description: End-to-end skill for surveydown — the R + Quarto + Shiny survey platform. Covers creating a survey, connecting a database to store responses, and deploying to Hugging Face Spaces and Posit Connect Cloud. Implemented now is Hugging Face deployment (generating each Space from its GitHub template via a shared Dockerfile and a generator script). Creating a survey, connecting a database, and Posit Connect Cloud deployment are under construction. Use whenever working with surveydown surveys — authoring or hosting.
 ---
 
 # Skill: surveydown
@@ -11,9 +11,10 @@ The skill is organized by task. Read the doc that matches what you're doing:
 
 | Task | Status | Read |
 |------|--------|------|
-| Deploy survey templates to **Hugging Face Spaces** (Docker) | ✅ implemented | [`resources/hugging-face-deployment.md`](resources/hugging-face-deployment.md) |
-| Create a new survey from scratch | 🔜 planned | — |
-| Deploy to **Posit Connect Cloud** | 🔜 planned | — |
+| Create a new survey | 🚧 under construction | [`resources/creating-a-survey.md`](resources/creating-a-survey.md) |
+| Connect a database to store responses | 🚧 under construction | [`resources/connecting-a-database.md`](resources/connecting-a-database.md) |
+| Deploy to **Hugging Face Spaces** (Docker) | ✅ implemented | [`resources/hugging-face-deployment.md`](resources/hugging-face-deployment.md) |
+| Deploy to **Posit Connect Cloud** | 🚧 under construction | [`resources/posit-connect-cloud-deployment.md`](resources/posit-connect-cloud-deployment.md) |
 
 Each implemented task keeps its tooling in a sibling directory (e.g. the Hugging Face tooling lives in [`hugging-face/`](hugging-face/)).
 
