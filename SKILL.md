@@ -19,10 +19,6 @@ The skill is organized into one folder per section, each with a `README.md` guid
 
 ## Core principles (apply across all tasks)
 
-- **Templates are the single source of truth.** Each survey template is its own GitHub repo under `surveydown-dev`. Deployment tooling *generates* host-specific artifacts from a template — it never keeps a second editable copy. Edit the template, then redeploy.
+- **Your survey is the source of truth.** A survey is a directory with `app.R` and `survey.qmd` (made from a template or from scratch). Deployment tooling *generates* host-specific artifacts (Dockerfile, packaging) from that directory — it never modifies the survey. Edit the survey, then redeploy.
 - **Surveys need a live R/Shiny runtime.** Static hosts (GitHub Pages, Netlify, Quarto Pub) cannot run them. Valid hosts: Hugging Face Spaces (Docker), Posit Connect Cloud, shinyapps.io (retiring), self-hosted Posit Connect.
 - **Real data goes to an external database.** `mode: preview` writes to a local `preview_data.csv`, which is fine for demos but lost on ephemeral hosts. For real collection use `mode: database` with external PostgreSQL — see <https://surveydown.org/docs/storing-data>.
-
-## Naming convention
-
-A template repo `template_<name>` maps to a deploy target `<name>` with underscores turned to dashes — e.g. `template_question_types` → `question-types`. Hugging Face URL: `https://<owner>-<name>.hf.space`.

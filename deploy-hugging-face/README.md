@@ -1,94 +1,89 @@
-# Deploying surveydown templates to Hugging Face Spaces
+# Deploy a surveydown survey to Hugging Face Spaces
 
-Deploy the surveydown survey templates to **Hugging Face Spaces** (Docker SDK).
-The generator script (`deploy.sh`) and shared assets live in this folder.
+Deploy **any** surveydown survey — one you made from a template or wrote from
+scratch — to a **Hugging Face Space** (Docker SDK). The generator script
+(`deploy.sh`) and shared assets live in this folder.
 
-Each template is its own GitHub repo and remains the **single source of truth**.
-The tooling does not duplicate surveys — it *generates* each Space from its
-template at deploy time, so you only ever edit the template.
+Your survey directory is the source of truth. The tooling only *generates* the
+Hugging Face packaging (a Dockerfile, a README, a package list) and pushes it to a
+Space — it never modifies your survey.
 
 ## Why Hugging Face
 
 surveydown surveys are live R/Shiny apps, so they need a host that runs R — not a
 static host. Hugging Face Spaces (Docker SDK) runs R Shiny, has no per-account app
-limit on the free tier (unlike Posit Connect Cloud's 5), and serves each app on a
-clean standalone URL with no HF chrome: `https://<owner>-<space>.hf.space`.
+limit on the free tier, and serves each app on a clean standalone URL with no HF
+chrome: `https://<owner>-<space>.hf.space`.
 
 Trade-offs to know:
 - One Space = one container = one R process (no horizontal scaling). Fine for
-  demos and modest N; not for thousands of simultaneous users.
+  modest N; not for thousands of simultaneous users.
 - Free Spaces sleep after inactivity and wake on next visit (cold start).
 - Container disk is ephemeral → never rely on `preview_data.csv` for real data;
   use `mode: database` + external PostgreSQL.
 
-## How the generator works
-
-For each template, `deploy.sh`:
-
-1. Clones the template from `github.com/<GITHUB_ORG>/template_<name>` (tracked files only).
-2. Assembles the Space content: the template's `app.R`, `survey.qmd`, and any
-   `images/`, `data/`, etc., **plus** the shared `assets/Dockerfile`, a generated
-   `README.md` (with Hugging Face frontmatter), and a generated `packages.txt`.
-3. Pushes that content to the matching Hugging Face Space, which auto-rebuilds.
-
-`_survey/` is **not** shipped — the container renders the survey at startup
-(Quarto is in the image). This keeps the Space repos free of binary files, which
-Hugging Face rejects in plain git.
-
-### One shared Dockerfile
-
-`assets/Dockerfile` is identical for every Space. Per-template R
-packages are supplied via a generated `packages.txt` (derived from each template's
-`library()`/`require()` calls), so there is exactly one Dockerfile to maintain.
-surveydown installs from GitHub (dev v1.3.0; CRAN only has 1.0.1). The Quarto CLI
-is pinned to a direct download URL (the GitHub API gets rate-limited / 403 on
-build servers).
-
 ## Prerequisites
 
-- `git` and `tar`.
-- Each target Space must already exist on Hugging Face (Docker SDK). Create one at
+- `git`, and `rsync` (the script falls back to `cp` if it's missing).
+- A surveydown survey directory containing `app.R` and `survey.qmd`.
+- The target Space already exists (Docker SDK). Create one at
   <https://huggingface.co/new-space>, or with the HF CLI:
   ```bash
-  hf repo create <HF_OWNER>/<space> --repo-type space --space-sdk docker
+  hf repo create <owner>/<space> --repo-type space --space-sdk docker
   ```
 - Git must be able to push to `huggingface.co`. Run `hf auth login`, or you'll be
   prompted for your username and a **Write** token on the first push.
 
 ## Usage
 
-Run these from this `deploy-hugging-face/` folder:
+Run from your survey directory (or pass `--dir`):
 
 ```bash
-# Build only (no push) — inspect the assembled Space folder under /tmp
-./deploy.sh --no-push question-types
+# from inside your survey folder:
+/path/to/deploy-hugging-face/deploy.sh --space yourname/my-survey
 
-# Deploy one or more templates (any name form works:
-#   question-types, question_types, or template_question_types)
-./deploy.sh question-types
-./deploy.sh question_types template_default
+# or point at the survey explicitly, from anywhere:
+/path/to/deploy-hugging-face/deploy.sh --space yourname/my-survey --dir ~/surveys/my-survey
 
-# Deploy everything listed in templates.txt
-./deploy.sh --all
+# build only — assemble the Space folder under /tmp and inspect it, no push:
+/path/to/deploy-hugging-face/deploy.sh --space yourname/my-survey --no-push
 ```
 
-Override the GitHub org or Hugging Face owner via env vars:
+(When the skill is installed, the script is at
+`~/.claude/skills/surveydown/deploy-hugging-face/deploy.sh`.)
 
-```bash
-GITHUB_ORG=surveydown-dev HF_OWNER=surveydown ./deploy.sh --all
-```
+The Space name is yours to choose; the survey loads at
+`https://<owner>-<space>.hf.space`.
+
+## How the generator works
+
+For the survey directory, `deploy.sh`:
+
+1. Copies the survey's runtime files (`app.R`, `survey.qmd`, and any `images/`,
+   `data/`, `www/`, `*.yml`, etc.), excluding build artifacts and dev junk
+   (`_survey/`, `preview_data.csv`, `rsconnect/`, `.git/`, `*.Rproj`, …).
+2. Adds the shared `assets/Dockerfile`, a generated `README.md` (with Hugging Face
+   frontmatter), and a generated `packages.txt`.
+3. Pushes the result to your Space, which auto-rebuilds.
+
+`_survey/` is **not** shipped — the container renders the survey at startup
+(Quarto is in the image). This also keeps the Space repo free of binary files,
+which Hugging Face rejects in plain git.
+
+### One shared Dockerfile
+
+`assets/Dockerfile` is the same for every survey. The R packages a given survey
+needs are written to `packages.txt` (derived from its `library()`/`require()`
+calls), so there is one Dockerfile to maintain. surveydown installs from GitHub
+(dev v1.3.0; CRAN only has 1.0.1). The Quarto CLI is pinned to a direct download
+URL (the GitHub API gets rate-limited / 403 on build servers). A survey needing an
+unusual system library may need a one-line edit to the Dockerfile.
 
 ## Files (in this folder)
 
 | File | Purpose |
 |------|---------|
 | `deploy.sh` | Build + push generator |
-| `templates.txt` | Template repos to deploy with `--all` |
 | `assets/Dockerfile` | Shared Dockerfile used by every Space |
 | `assets/dockerignore` | Copied into each Space as `.dockerignore` |
 | `assets/space-readme.template.md` | README template (HF frontmatter) for each Space |
-
-## Adding a template
-
-Add its repo name (`template_<name>`) to `templates.txt`, create the Space, and
-run `./deploy.sh <name>`. No other changes needed.
