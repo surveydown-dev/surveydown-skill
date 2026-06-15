@@ -29,7 +29,7 @@ filled in.
 npx skills add surveydown-dev/surveydown-skill -a claude-code -g -y
 ```
 
-This installs the `surveydown` skill globally to `~/.claude/skills/`. Start a new
+This installs the `surveydown-skill` skill globally to `~/.claude/skills/`. Start a new
 Claude Code session and it's available. ([`npx skills`](https://github.com/vercel-labs/skills)
 is the open agent-skills installer.)
 

@@ -1,9 +1,9 @@
 ---
-name: surveydown
+name: surveydown-skill
 description: End-to-end skill for surveydown — the R + Quarto + Shiny survey platform. Covers creating a survey, connecting a database to store responses, and deploying to Hugging Face Spaces and Posit Connect Cloud. Implemented now is Hugging Face deployment (generating each Space from its GitHub template via a shared Dockerfile and a generator script). Creating a survey, connecting a database, and Posit Connect Cloud deployment are under construction. Use whenever working with surveydown surveys — authoring or hosting.
 ---
 
-# Skill: surveydown
+# Skill: surveydown-skill
 
 Use this skill for any [surveydown](https://surveydown.org) task — authoring a survey or deploying one to a host. surveydown surveys are R + Quarto + Shiny apps (an `app.R` plus a `survey.qmd`), so they need a host that runs R/Shiny, not a static host.
 
