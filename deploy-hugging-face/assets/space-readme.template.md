@@ -1,5 +1,5 @@
 ---
-title: {{TITLE}}
+title: "{{TITLE}}"
 emoji: 📋
 colorFrom: blue
 colorTo: indigo

@@ -47,13 +47,32 @@ Run from your survey directory (or pass `--dir`):
 
 # build only — assemble the Space folder under /tmp and inspect it, no push:
 /path/to/deploy-hugging-face/deploy.sh --space yourname/my-survey --no-push
+
+# set the display title shown on the Space card (URL is unaffected):
+/path/to/deploy-hugging-face/deploy.sh --space yourname/my-survey \
+  --title "My Survey — Pilot Wave 1"
 ```
 
 (When the skill is installed, the script is at
-`~/.claude/skills/surveydown/deploy-hugging-face/deploy.sh`.)
+`~/.claude/skills/surveydown-skill/deploy-hugging-face/deploy.sh`.)
 
 The Space name is yours to choose; the survey loads at
 `https://<owner>-<space>.hf.space`.
+
+### Display title vs. URL slug
+
+A Space has two distinct names:
+
+- **URL slug** — the `<owner>/<name>` you pass to `--space`. It defines the URL
+  (`https://<owner>-<name>.hf.space`) and must be URL-safe (lowercase, dashes).
+  Changing it later (Space → Settings → *Rename or transfer*) **changes the URL**.
+- **Display title** — the heading on the Space card. By default it's the slug in
+  Title Case (`questions-yml` → "Questions Yml"). Pass `--title "Any Text"` to set
+  it to anything (spaces and punctuation allowed); the **URL is unaffected**.
+
+Because the README (which carries the title) is *generated* on every deploy, set
+the title with `--title` rather than hand-editing it on Hugging Face — otherwise
+the next deploy overwrites your edit.
 
 ## How the generator works
 

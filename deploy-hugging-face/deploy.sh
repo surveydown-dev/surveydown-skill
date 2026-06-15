@@ -7,11 +7,14 @@
 # truth; this only generates the Hugging Face packaging and pushes it to a Space.
 #
 # Usage:
-#   ./deploy.sh --space <owner>/<name> [--dir <survey-dir>]
+#   ./deploy.sh --space <owner>/<name> [--dir <survey-dir>] [--title "Display Title"]
 #   ./deploy.sh --space <owner>/<name> --no-push     # build only, don't push
 #
 #   --space    target Hugging Face Space, e.g. yourname/my-survey   (required)
 #   --dir      path to the survey directory                          (default: .)
+#   --title    display title shown on the Space card (any text, spaces ok)
+#              (default: derived from the Space name, e.g. "My Survey")
+#              This is only the display name; the URL slug never changes.
 #   --no-push  assemble the Space folder and print its path; skip the push
 #
 # What it does:
@@ -36,13 +39,15 @@ EXCLUDE_PKGS="base stats utils graphics grDevices methods datasets tools paralle
 
 SPACE=""
 DIR="."
+TITLE=""
 PUSH=true
 while [ $# -gt 0 ]; do
   case "$1" in
     --space)   SPACE="${2:-}"; shift 2 ;;
     --dir)     DIR="${2:-}"; shift 2 ;;
+    --title)   TITLE="${2:-}"; shift 2 ;;
     --no-push) PUSH=false; shift ;;
-    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,36p' "$0"; exit 0 ;;
     *)         echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -54,7 +59,12 @@ DIR="$(cd "$DIR" 2>/dev/null && pwd)" || { echo "Error: survey directory not fou
 [ -f "$DIR/survey.qmd" ] || { echo "Error: no survey.qmd in $DIR." >&2; exit 1; }
 
 owner="${SPACE%%/*}"; name="${SPACE##*/}"
-title="$(echo "$name" | sed 's/[-_]/ /g' | awk '{for(i=1;i<=NF;i++)$i=toupper(substr($i,1,1)) substr($i,2)}1')"
+# Display title: use --title if given, else Title-Case the Space name.
+if [ -n "$TITLE" ]; then
+  title="$TITLE"
+else
+  title="$(echo "$name" | sed 's/[-_]/ /g' | awk '{for(i=1;i<=NF;i++)$i=toupper(substr($i,1,1)) substr($i,2)}1')"
+fi
 
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 mkdir "$tmp/space"
@@ -89,8 +99,9 @@ grep -rhoE '(library|require)\(([^),]+)\)' "$DIR/app.R" "$DIR/survey.qmd" 2>/dev
     done
 echo "    packages.txt: $(paste -sd' ' "$tmp/space/packages.txt" 2>/dev/null || true)"
 
-# 4. README with Hugging Face frontmatter
-sed -e "s/{{TITLE}}/${title}/g" "$ASSETS/space-readme.template.md" > "$tmp/space/README.md"
+# 4. README with Hugging Face frontmatter (bash replace — safe for any title chars)
+template="$(cat "$ASSETS/space-readme.template.md")"
+printf '%s\n' "${template//\{\{TITLE\}\}/$title}" > "$tmp/space/README.md"
 
 # 5. Build-only mode
 if [ "$PUSH" != true ]; then
