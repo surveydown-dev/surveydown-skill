@@ -10,14 +10,55 @@ Space — it never modifies your survey.
 
 ## Agent workflow (follow this when deploying for a user)
 
-When you (the assistant) deploy a survey to Hugging Face on a user's behalf, do
-these two confirmations **before** running `deploy.sh` — do not assume either:
+When you (the assistant) deploy a survey to Hugging Face on a user's behalf,
+settle the following with the user **before** running `deploy.sh` — do not assume
+any of them.
 
-1. **URL slug** — confirm the target `--space <owner>/<name>`. The `<name>`
+### A. Survey configuration — ALWAYS ASK BOTH
+
+Mode and cookies are critical settings for every survey, so **always ask both
+questions**, then edit the `survey-settings:` block in the survey's `survey.qmd`
+to match the answers. (This edits the survey itself — an authoring step done with
+the user's consent — and is separate from `deploy.sh`, which never touches the
+survey.)
+
+1. **Mode** — ask which data mode to use, presenting these three options with a
+   one-line description each:
+   - **local** — responses saved to a local `local_data.csv` file; no database.
+     Good for collecting data while the app runs on your own machine.
+   - **preview** — responses saved to a local `preview_data.csv`; meant for
+     testing/previewing. Any database connection is ignored in this mode.
+   - **database** — responses stored in an external PostgreSQL database. The only
+     **durable** option on ephemeral hosts (local/preview CSV files are wiped when
+     a Hugging Face Space restarts).
+
+   Set `mode: <choice>` in `survey.qmd`. **If the user chooses `database`**, the
+   credentials must reach the running container — walk them through both steps:
+   1. **Locally:** run `surveydown::sd_db_config()` (or hand-edit a `.env`) to
+      create a `.env` holding `SD_HOST`, `SD_PORT`, `SD_DBNAME`, `SD_USER`,
+      `SD_TABLE`, `SD_PASSWORD`. The `.env` is git-ignored and is **never** pushed
+      to the Space (`deploy.sh` excludes it).
+   2. **On Hugging Face:** add those same six `SD_*` values as **Secrets** (not
+      public Variables) under the Space's **Settings → Variables and secrets**
+      (`https://huggingface.co/spaces/<owner>/<name>/settings`). `sd_db_connect()`
+      reads them from the environment. Until they are set, the live survey runs but
+      shows a "DATABASE NOT CONNECTED — responses are not being saved" banner.
+
+2. **Cookies** — ask "Do you want to use cookies?" with **yes** / **no**:
+   - **yes** (`use-cookies: true`) — a per-browser cookie lets each participant
+     resume the survey where they left off (state restored on reload). Each browser
+     is its own independent entity, so concurrent participants never collide.
+   - **no** (`use-cookies: false`) — no resume; reloading starts the survey fresh.
+
+   Set `use-cookies: <true|false>` in `survey.qmd`.
+
+### B. Deployment target — confirm before pushing
+
+3. **URL slug** — confirm the target `--space <owner>/<name>`. The `<name>`
    becomes the URL (`https://<owner>-<name>.hf.space`) and must be URL-safe
    (lowercase, dashes, no spaces). Propose a sensible slug from the survey/folder
    name and let the user accept or change it.
-2. **Display title** — always **ask the user what display title to show on the
+4. **Display title** — always **ask the user what display title to show on the
    Space card**. Offer a few reasonable suggestions (e.g. the Title-Cased slug, or
    a descriptive phrase drawn from the survey's `survey.qmd` title / `README`), and
    also let them type their own. Pass their choice via `--title "..."`. The title
