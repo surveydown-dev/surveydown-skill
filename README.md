@@ -13,11 +13,13 @@ routes to the right task doc.
 | Create a new survey | 🚧 under construction |
 | Connect a database to store responses | 🚧 under construction |
 | Deploy to Hugging Face Spaces | ✅ available |
+| Deploy to Google Cloud Run | ✅ available |
 | Deploy to Posit Connect Cloud | 🚧 under construction |
 
 Each section lives in its own folder with a `README.md` guide and its tooling.
-The Hugging Face deployment is fully implemented — see
-[`deploy-hugging-face/`](deploy-hugging-face/README.md). The other section folders
+The Hugging Face and Google Cloud Run deployments are fully implemented — see
+[`deploy-hugging-face/`](deploy-hugging-face/README.md) and
+[`deploy-google-cloud/`](deploy-google-cloud/README.md). The other section folders
 ([`create-survey/`](create-survey/README.md),
 [`connect-database/`](connect-database/README.md),
 [`deploy-posit-cloud/`](deploy-posit-cloud/README.md)) are stubbed and being

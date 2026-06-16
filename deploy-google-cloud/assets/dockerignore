@@ -1,0 +1,17 @@
+.git
+.gitignore
+.gitattributes
+.env
+.Renviron
+_survey
+survey_files
+survey.html
+preview_data.csv
+local_data.csv
+rsconnect
+manifest.json
+.posit
+.Rproj.user
+.Ruserdata
+*.Rproj
+.DS_Store
