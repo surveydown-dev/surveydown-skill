@@ -138,5 +138,14 @@ gcloud run deploy "$SERVICE" \
   ${SECRET_FLAGS[@]+"${SECRET_FLAGS[@]}"} \
   --quiet
 
-url="$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format='value(status.url)' 2>/dev/null)"
-echo "    deployed -> ${url:-（check: gcloud run services list）}"
+# Report the canonical project-number URL (matches the Cloud Run console), not
+# the legacy hash form returned by status.url. Then the console dashboard link.
+project_number="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)' 2>/dev/null)"
+if [ -n "$project_number" ]; then
+  url="https://${SERVICE}-${project_number}.${REGION}.run.app"
+else
+  url="$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format='value(status.url)' 2>/dev/null)"
+fi
+dashboard="https://console.cloud.google.com/run/detail/${REGION}/${SERVICE}/metrics?project=${PROJECT}"
+echo "    deployed  -> ${url:-（check: gcloud run services list）}"
+echo "    dashboard -> ${dashboard}"

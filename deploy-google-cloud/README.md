@@ -90,8 +90,13 @@ Same two critical `survey.qmd` settings as every host. Ask both, then edit the
 # use --no-secrets to skip that.
 ```
 
-`gcloud run deploy` is synchronous — it waits for the service to be healthy and
-prints the URL, so there's no separate `--wait`.
+`gcloud run deploy` is synchronous — it waits for the service to be healthy, so
+there's no separate `--wait`. On success the script prints **two links**:
+1. the live survey URL in the **canonical project-number form**
+   (`https://<service>-<projectnumber>.<region>.run.app`) — the same URL the Cloud
+   Run console shows (not the legacy `…-<hash>-<regioncode>.a.run.app` alias); and
+2. the **Cloud Run dashboard** link for the service
+   (`https://console.cloud.google.com/run/detail/<region>/<service>/metrics?project=<project>`).
 
 ## How the generator works
 
