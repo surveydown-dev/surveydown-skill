@@ -168,17 +168,41 @@ res <- api("PATCH", paste0("/contents/", guid), token,
 if (res$status >= 300) note("! title/access update returned HTTP %s", res$status) else note("title set: %s", cfg$title)
 
 # ---- 4. Custom URL (vanity) ---------------------------------------------------
+# The vanity is set on the CONTENT, but the live route is tied to the published
+# REVISION. Setting vanity_name on already-published content does not re-point the
+# active revision — a republish is required (the UI's "Republish" button). So:
+# PATCH the vanity, and if the active revision still serves the default URL,
+# republish and wait until the new revision serves the vanity.
 default_url <- paste0("https://", guid, ".share.connect.posit.cloud/")
 public_url  <- default_url
 if (cfg$vanity && nzchar(cfg$slug)) {
   body <- jsonlite::toJSON(list(vanity_name = cfg$slug, domain_id = NA), auto_unbox = TRUE, na = "null")
   v <- api("PATCH", paste0("/contents/", guid), token, body)
-  if (v$status == 200L) {
-    public_url <- paste0("https://", v$body$vanity_domain, ".share.connect.posit.cloud/")
-    note("custom URL set: %s", public_url)
-  } else {
+  if (v$status != 200L) {
     msg <- if (is.list(v$body)) v$body$error %||% "" else ""
     note("! custom URL not set (HTTP %s) %s — keeping the default URL.", v$status, msg)
+  } else {
+    vdom <- v$body$vanity_domain
+    public_url <- paste0("https://", vdom, ".share.connect.posit.cloud/")
+    note("custom URL set: %s", public_url)
+    cur <- api("GET", paste0("/contents/", guid), token)$body$current_revision
+    if (is.null(cur$url) || !grepl(vdom, cur$url, fixed = TRUE)) {
+      note("republishing so the custom URL goes live ...")
+      rp <- api("POST", paste0("/contents/", guid, "/republish"), token, "{}")
+      if (rp$status >= 300) {
+        note("! republish returned HTTP %s — custom URL may lag; the default URL works.", rp$status)
+      } else {
+        ok <- FALSE
+        for (i in 1:40) {  # up to ~2 min
+          Sys.sleep(3)
+          cr <- api("GET", paste0("/contents/", guid), token)$body$current_revision
+          if (isTRUE(cr$publish_result == "success") && !is.null(cr$url) && grepl(vdom, cr$url, fixed = TRUE)) { ok <- TRUE; break }
+          if (isTRUE(cr$publish_result == "failure")) { note("! republish failed — the default URL works."); break }
+        }
+        if (ok) note("custom URL live after republish.")
+        else    note("! custom URL not confirmed within the wait window; the default URL works.")
+      }
+    }
   }
 }
 

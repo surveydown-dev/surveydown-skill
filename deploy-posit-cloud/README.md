@@ -178,7 +178,12 @@ account, reads the survey's `mode` from `survey.qmd`, then hands off to
 5. Sets the **display title** and **public access** via `PATCH /v1/contents/{guid}`.
 6. Sets the **custom URL** via `PATCH /v1/contents/{guid}` with
    `{"vanity_name": "<slug>", "domain_id": null}` (the explicit `domain_id: null`
-   is required, otherwise the API rejects the vanity).
+   is required, otherwise the API rejects the vanity). The live route is tied to
+   the published **revision**, so when a first-time vanity is set on
+   already-published content, `deploy.R` **republishes** (`POST
+   /contents/{guid}/republish`) and waits until the new revision serves the vanity
+   — otherwise the custom URL would 404 while the default GUID URL still works.
+   On a redeploy where the vanity is already live, the republish is skipped.
 7. Reports the account's `N/5` application-slot usage (best effort).
 8. Verifies the live URL over HTTP and prints the public URL + dashboard link.
 

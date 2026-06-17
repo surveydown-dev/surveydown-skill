@@ -28,17 +28,36 @@ There are **three** deployment platforms, and they are the **only** choices:
 - **If the user only says they want to deploy/host/publish a survey online**
   *without* naming one — **ask which of the three** before doing anything else.
   Offer only these three; do not invent or suggest other hosts (static hosts can't
-  run R/Shiny). Lead with each free tier's main limit so the user can choose:
-  - **Hugging Face Spaces** — free tier runs about **3 surveys at once**. No bank
-    card needed.
-  - **Posit Connect Cloud** — free tier allows **5 surveys** total. No bank card
-    needed.
-  - **Google Cloud Run** — **no limit** on how many, but you must **link a bank
-    card** to the Google account (stays ≈ $0 for low-traffic surveys).
+  run R/Shiny). Keep each description short:
+  - **Hugging Face Spaces** — free tier: **3 surveys**.
+  - **Posit Connect Cloud** — free tier: **5 surveys**.
+  - **Google Cloud Run** — **a bank card is required** (≈ $0 when idle); no limit on
+    the number of surveys.
 
 Once the platform is known, follow that section's README — including its
 **always-ask** survey settings (mode, cookies) and any platform-specific prompts
 (e.g. display title + URL slug for Posit Connect Cloud).
+
+## Deploying several surveys at once (batch)
+
+When the user asks to deploy **multiple** surveys, **batch the questions** — never
+walk survey-by-survey asking the same things again and again.
+
+1. **Ask the shared settings once, for the whole batch:** platform (if not named),
+   data **mode**, and **cookies**. They apply to every survey in the batch.
+2. **Propose the per-survey names in one step.** Each survey still needs its own
+   display title and URL slug (and content/service name). Derive a sensible default
+   for each from its folder name / `survey.qmd` title, then present them **all
+   together as one table** for the user to accept or tweak in a single reply — do
+   not prompt one survey at a time.
+3. **Check the free-tier cap before starting.** If the batch would exceed the
+   platform's limit (Hugging Face ~3 running, Posit Connect Cloud 5 total — count
+   what's already deployed), say so and stop for the user's decision rather than
+   deploying into a wall.
+4. **Deploy all, then report once.** Run the per-survey deploys (in sequence or in
+   parallel — your call) and return a **single summary table**: survey → title →
+   live URL → status. Surface any per-survey failures there; don't abort the whole
+   batch for one bad survey.
 
 ## Core principles (apply across all tasks)
 
