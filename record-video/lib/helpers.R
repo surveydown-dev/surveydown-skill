@@ -101,6 +101,20 @@ launch_browser <- function(debug_port = 9222, width = 1280, height = 720,
   Sys.sleep(1)
 
   chrome_profile <<- tempfile("sd-record-chrome-")
+  # Pre-seed the throwaway profile so Chrome treats English as the user's
+  # preferred language and never offers to translate the (English) survey.
+  # The launch flags alone don't suppress the translate bubble on a machine
+  # whose OS locale differs from the page (e.g. a Chinese-locale Mac viewing an
+  # English page); the profile's accept_languages + translate.enabled do.
+  default_dir <- file.path(chrome_profile, "Default")
+  dir.create(default_dir, recursive = TRUE, showWarnings = FALSE)
+  writeLines(
+    paste0(
+      '{"translate":{"enabled":false},',
+      '"intl":{"accept_languages":"en-US,en","selected_languages":"en-US,en"}}'
+    ),
+    file.path(default_dir, "Preferences")
+  )
   cat("Launching headed Chrome on debug port", debug_port, "...\n")
   system2(
     CHROME_BIN,
@@ -112,6 +126,9 @@ launch_browser <- function(debug_port = 9222, width = 1280, height = 720,
       sprintf("--window-position=%d,%d", pos_x, pos_y),
       "--no-first-run", "--no-default-browser-check",
       "--disable-extensions", "--disable-infobars",
+      # Suppress the Translate omnibox icon/bubble (pages with accented words
+      # like "Adélie" otherwise trigger a translate prompt in the address bar).
+      "--disable-features=Translate,TranslateUI",
       "--new-window", "about:blank"
     ),
     stdout = "/tmp/sd_record_chrome.log",
@@ -256,10 +273,15 @@ approach <- function(sel, scroll_sel = sel) {
   cursor_click()
 }
 
-# Reload the current page (simulates a refresh)
+# Reload the current page to start a fresh survey session (e.g. live polling,
+# where each reload is a new respondent). The navigation wipes the injected
+# overlay cursor, so re-inject it; defensively re-clear the device-metrics
+# override too (it stays cleared across a reload, but this is cheap insurance).
 reload <- function(wait = 8) {
   b$Page$reload()
   Sys.sleep(wait)
+  try(b$Emulation$clearDeviceMetricsOverride(), silent = TRUE)
+  inject_cursor()
 }
 
 # --- JS execution + waiting -------------------------------------------------
@@ -286,6 +308,59 @@ click <- function(sel, wait = 1.2) {
   approach(sel)
   js(sprintf("document.querySelector('%s').click(); true", sel))
   pause(wait)
+}
+
+# Real CDP mouse click at the CENTER of the element matching `sel`. Faithful to
+# a genuine user click -- needed for shinyWidgets button groups (clicking the
+# inner <input> or a synthetic .click() desyncs the toggle) and for canvas
+# widgets like leaflet/plotly. Scrolls the element on-camera and moves the
+# overlay cursor onto it first (visual only).
+cdp_click <- function(sel, wait = 1.0) {
+  wait_for(sel)
+  scroll_into_view(sel)
+  wait_scroll_settled()
+  cursor_to(sel)
+  cursor_click()
+  xy <- js(sprintf(
+    "(function(){var e=document.querySelector('%s');var r=e.getBoundingClientRect();
+       return {x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2)};})()",
+    sel
+  ))
+  b$Input$dispatchMouseEvent(type = "mousePressed", x = xy$x, y = xy$y,
+                             button = "left", clickCount = 1)
+  b$Input$dispatchMouseEvent(type = "mouseReleased", x = xy$x, y = xy$y,
+                             button = "left", clickCount = 1)
+  pause(wait)
+}
+
+# Click an option in a button-style question (mc_buttons / mc_multiple_buttons)
+# by its VISIBLE text. These render as <button class="checkbtn/radiobtn">
+# <input ...>Text</button>; we tag the matching button by text and cdp_click it.
+click_button <- function(container_id, label_text, wait = 1.0) {
+  csel <- paste0("#container-", container_id)
+  wait_for(csel)
+  found <- js(sprintf(
+    "(function(){var g=document.querySelector('%s'); if(!g) return false;
+       var L=[].slice.call(g.querySelectorAll('button, label')).filter(function(l){
+         return l.textContent.trim()===%s;})[0];
+       if(!L) return false; L.setAttribute('data-sdpick', %s); return true;})()",
+    csel, js_str(label_text), js_str(label_text)
+  ))
+  if (!isTRUE(found)) {
+    stop("click_button: no option '", label_text, "' in #container-", container_id)
+  }
+  cdp_click(sprintf('%s [data-sdpick=%s]', csel, js_str(label_text)), wait = wait)
+}
+
+# Click a button-style option by its underlying input VALUE -- use when the
+# button label is rich HTML/image with no clean text to match (e.g. conjoint
+# choice tasks). Keyed on the input's name (= question id) + value.
+click_button_value <- function(question_id, value, wait = 1.0) {
+  sel <- sprintf(
+    'button:has(input[name="%s"][value="%s"]), label:has(input[name="%s"][value="%s"])',
+    question_id, value, question_id, value
+  )
+  cdp_click(sel, wait = wait)
 }
 
 # Dispatch a real mousedown event (for handlers bound to mousedown rather

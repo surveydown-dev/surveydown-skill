@@ -103,8 +103,23 @@ Available helper drivers (one per question type), all keyed by question `id`:
 | next button | `click("#<page_id>_next")` |
 
 Other useful helpers: `body_has("text")`, `visible("<id>")`, `present("<sel>")`,
-`js("<expr>")`, and `pause()` to pace the video and let reactive questions
-re-render.
+`js("<expr>")`, `pause()` to pace the video and let reactive questions
+re-render, and `reload(wait=)` to refresh the page into a **fresh survey
+session** (re-injects the overlay cursor automatically).
+
+### Multi-session walkthroughs (e.g. live polling)
+
+Some templates are about what happens *across* respondents, not a single
+run-through. `template_live_polling` (mode `database`) shows a histogram that
+refreshes every 5s from the DB, so its walkthrough
+(`walkthroughs/live_polling.R`) runs **three sessions back to back**: each casts
+one random vote, advances to the results page, and **holds past one full refresh
+cycle** (a functional `Sys.sleep()`, not a time-factor-scaled `pause()`, because
+the 5s DB refresh is a hard real-time constraint) so the live histogram redraws
+with the new vote. Between sessions it calls `reload()` — with `use-cookies:
+false` each reload starts a brand-new Shiny session on the first page, so the
+viewer watches the histogram grow vote by vote. Database credentials come from
+the template's git-ignored `.env`; the recorder never touches it.
 
 > **Do not call `shot()` / `b$screenshot()` while recording.** chromote applies
 > a device-metrics override to capture a screenshot, which briefly reflows the
