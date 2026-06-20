@@ -171,3 +171,104 @@ the template's git-ignored `.env`; the recorder never touches it.
 - **macOS only** as written (the recorder uses `avfoundation`). Porting to
   Linux/Windows means swapping the ffmpeg input in `lib/record.R`
   (`x11grab` / `gdigrab`).
+
+## Publishing the recording in a GitHub README
+
+Once the `.mp4` is committed to a template repo, the goal is to show it in that
+repo's `README.md` so people can **click and play** it. GitHub makes this
+surprisingly hard. Here is what works, what doesn't, and why.
+
+### What does NOT work (and why)
+
+- **`<video src="…">` in the README.** GitHub's markdown sanitizer **strips**
+  any `<video>` tag whose `src` is not a GitHub *user-attachments* upload URL.
+  A tag pointing at a committed file (raw or blob URL) is removed entirely —
+  you just see the surrounding text/link, no player.
+- **Linking to the `raw` URL**
+  (`raw.githubusercontent.com/<owner>/<repo>/main/video-recording.mp4`). It is
+  served as `Content-Type: application/octet-stream` with `X-Content-Type-Options:
+  nosniff`, so browsers **download** it instead of playing it.
+- **Linking to the `blob` URL**
+  (`github.com/<owner>/<repo>/blob/main/video-recording.mp4`). GitHub's blob
+  viewer **size-caps** committed videos and falls back to the code viewer with
+  *"we can't show files that are this big right now."*
+- **A true inline player embedded *in* the README** is only possible by
+  **manually drag-dropping** the file into the GitHub web README editor, which
+  uploads it as an attachment and inserts a `user-attachments` URL that GitHub
+  renders as a `<video>` player. This **cannot be scripted** (no public API).
+
+### What works: a poster thumbnail linking to jsDelivr
+
+The reliable, fully-automated approach is a **clickable poster image** that links
+to the **jsDelivr CDN**. jsDelivr mirrors public GitHub repos and serves the file
+with the correct `Content-Type: video/mp4`, so clicking the poster opens the
+video and **plays it in a new browser tab**.
+
+README markup (for a **Video** template; for a **Demo** template put this section
+*below* the existing `### 🟢 Demo` live-link section):
+
+```markdown
+### 🎬 Walkthrough Recording
+
+[![Walkthrough recording](video-thumbnail.png)](https://cdn.jsdelivr.net/gh/<owner>/<repo>@main/video-recording.mp4)
+```
+
+- The **poster** (`video-thumbnail.png`) is referenced with a **relative path** so
+  GitHub renders it inline; only the **link target** uses the absolute jsDelivr
+  URL.
+- This is *not* an in-page player — it opens a new tab. That tradeoff is the price
+  of full automation (see the user-attachments note above for the only in-page
+  alternative).
+
+### The poster thumbnail
+
+Use the **first frame** of the recording (it shows the template title) and draw a
+**centered play button** so it reads as a video. Save as **PNG**.
+
+```bash
+# 1. first frame, scaled to 1280 wide
+ffmpeg -y -ss 0 -i video-recording.mp4 -frames:v 1 -vf "scale=1280:-2" /tmp/ff.png
+```
+
+```python
+# 2. overlay a play button (Python Pillow) -> video-thumbnail.png
+from PIL import Image, ImageDraw
+img = Image.open("/tmp/ff.png").convert("RGBA")
+W, H = img.size
+ov = Image.new("RGBA", img.size, (0, 0, 0, 0)); d = ImageDraw.Draw(ov)
+cx, cy, r = W // 2, H // 2, 72
+d.ellipse([cx-r, cy-r, cx+r, cy+r], fill=(0, 0, 0, 150))
+d.ellipse([cx-r, cy-r, cx+r, cy+r], outline=(255, 255, 255, 210), width=4)
+tx, ty = 26, 38
+d.polygon([(cx-tx+6, cy-ty), (cx-tx+6, cy+ty), (cx+tx+10, cy)], fill=(255, 255, 255, 235))
+Image.alpha_composite(img, ov).convert("RGB").save("video-thumbnail.png")
+```
+
+### jsDelivr gotchas
+
+- **20 MB hard limit per file.** Above it, jsDelivr returns
+  `403 "File size exceeded the configured limit of 20 MB."` Compress oversized
+  recordings first, e.g.:
+  ```bash
+  ffmpeg -i video-recording.mp4 -vf scale=1920:-2 -c:v libx264 -preset medium \
+    -crf 25 -pix_fmt yuv420p -movflags +faststart -an out.mp4
+  ```
+  (1080p / CRF 25 / faststart typically drops a 2560×1440 screen recording from
+  ~24 MB to ~7 MB with fine quality, and faststart helps web streaming.)
+- **`@main` is cached aggressively (~12h).** jsDelivr caches the
+  branch→commit resolution, so right after you change a video the CDN can keep
+  serving the **old** file (e.g. still the pre-compression, too-big one → stale
+  403). To force a refresh:
+  - purge the path: `curl https://purge.jsdelivr.net/gh/<owner>/<repo>@main/video-recording.mp4`
+  - if the stale branch-resolution persists (purge clears the file, not the
+    `@main`→commit mapping), **pin the link to the commit SHA** instead of
+    `@main`: `…/gh/<owner>/<repo>@<full-sha>/video-recording.mp4` (immutable, always
+    fresh). Switch back to `@main` once the cache has expired, or leave it pinned.
+
+### Verifying
+
+```bash
+# should be: HTTP 200 + content-type: video/mp4  (NOT octet-stream, NOT 403)
+curl -sI -L "https://cdn.jsdelivr.net/gh/<owner>/<repo>@main/video-recording.mp4" \
+  | grep -iE '^HTTP|content-type|content-length'
+```
